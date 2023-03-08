@@ -1,0 +1,46 @@
+---
+- name: Install Gnome Extensions
+  hosts: localhost
+  become: yes
+  tasks:
+  - name: Install Gnome Shell Integration browser extension
+    apt:
+      name: chrome-gnome-shell
+      state: present
+  - name: Install Gnome Tweak Tool
+    apt:
+      name: gnome-tweaks
+      state: present
+  - name: Install Gnome Shell Extension Manager
+    apt:
+      name: gnome-shell-extension-manager
+      state: present
+
+- name: Install Gnome Extensions
+  hosts: localhost
+  become: false
+  tasks:
+  - name: Install Gnome Extensions
+    shell: |
+      gnome-extensions install https://extensions.gnome.org/extension-data/arcmenuarcmenu.com.v43.shell-extension.zip
+      gnome-extensions install https://extensions.gnome.org/extension-data/bluetooth-quick-connectbjarosze.gmail.com.v31.shell-extension.zip
+      gnome-extensions install https://extensions.gnome.org/extension-data/dash-to-paneljderose9.github.com.v52.shell-extension.zip
+      gnome-extensions install https://extensions.gnome.org/extension-data/gnome-clipboardb00f.github.io.v17.shell-extension.zip
+      gnome-extensions install https://extensions.gnome.org/extension-data/mediacontrolscliffniff.github.com.v23.shell-extension.zip
+  - name: Load Dash to Panel config
+    shell: dconf load /org/gnome/shell/extensions/dash-to-panel/ < ./files/dash-to-panel-settings.dconf
+
+- name: Enable Gnome Extensions
+  hosts: localhost
+  become: false
+  tasks:
+  - name: Activate all installed extensions
+    shell: |
+      gnome-extensions enable {{ item }}
+    with_items:
+      - arcmenu@arcmenu.com
+      - bluetooth-quick-connect@bjarosze.gmail.com
+      - dash-to-panel@jderose9.github.com
+      - gnome-clipboard@b00f.github.io
+      - mediacontrols@cliffniff.github.com
+

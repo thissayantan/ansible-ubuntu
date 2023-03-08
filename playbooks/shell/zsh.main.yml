@@ -1,0 +1,83 @@
+---
+- name: install zsh and configure
+  connection: local
+  hosts: localhost
+  become: false
+  pre_tasks:
+    - name: install zsh and powerline fonts
+      become: true
+      apt:
+        pkg:
+          - zsh
+          - fonts-powerline
+          - fzf
+        state: latest
+    - name: Switch to zsh
+      user: name={{ ansible_user_id }} shell=/bin/zsh
+      become: true
+    - name: install custom plugins
+      shell: |
+        git clone git@github.com:zsh-users/zsh-autosuggestions.git ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-autosuggestions
+        git clone git@github.com:zsh-users/zsh-syntax-highlighting.git ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-syntax-highlighting
+        git clone git@github.com:changyuheng/zsh-interactive-cd.git ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-interactive-cd
+  roles:
+    - role: gantsign.oh-my-zsh
+      oh_my_zsh_theme: powerlevel10k/powerlevel10k
+      oh_my_zsh_plugins:
+        - git
+        - colored-man-pages
+        - colorize
+        - docker
+        - git
+        - npm
+        - nvm
+        - sudo
+        - zsh-autosuggestions
+        - zsh-interactive-cd
+        - zsh-syntax-highlighting
+      oh_my_zsh_install: yes
+      users:
+       - username: sayantan
+  post_tasks:
+    - name: Add empty line to end of .zshrc
+      lineinfile:
+        path: ~/.zshrc
+        insertafter: EOF
+        line: ""
+
+    - name: Add block to end of .zshrc
+      lineinfile:
+        path: '~/.zshrc'
+        insertafter: EOF
+        line: |
+          # custom end-of-file
+
+    - name: Add empty line to end of .zshrc
+      lineinfile:
+        path: ~/.zshrc
+        insertafter: EOF
+        line: ""
+
+    - name: install powerlevel10k/powerlevel10k theme
+      become: false
+      run_once: true
+      git:
+        repo: 'https://github.com/romkatv/powerlevel10k.git'
+        dest: '~/.oh-my-zsh/custom/themes/powerlevel10k'
+        force: yes
+        clone: yes
+        accept_hostkey: yes
+
+    - name: add p10k.zsh file
+      copy:
+        src: ./files/p10k.zsh
+        dest: '~/.p10k.zsh'
+
+    - name: source p10k.zsh
+      lineinfile:
+        path: '~/.zshrc'
+        insertafter: EOF
+        line: |
+          # powerlevel10k config
+          source ~/.p10k.zsh
+

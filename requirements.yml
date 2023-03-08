@@ -1,0 +1,6 @@
+---
+collections:
+  - community.general
+roles:
+  - gantsign.oh-my-zsh
+#  - gantsign.postman

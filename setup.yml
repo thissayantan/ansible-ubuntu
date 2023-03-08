@@ -1,0 +1,13 @@
+---
+# - name: set locale
+#   import_playbook: ./playbooks/set-region/locale.main.yml
+# - name: setup zsh
+#   import_playbook: ./playbooks/shell/zsh.main.yml
+ - name: setup ssh keys
+   import_playbook: ./playbooks/ssh/ssh.main.yml
+# - name: install gnome extensions
+#   import_playbook: ./playbooks/gnome-extensions/gnome-extensions.main.yml
+# - name: set dark theme
+#   import_playbook: ./playbooks/dark-theme/dark-theme.main.yml
+# - name: install applications
+#   import_playbook: ./playbooks/applications/applications.main.yml   

@@ -1,0 +1,47 @@
+---
+- name: Set Ubuntu Formats to English - India
+  hosts: localhost
+  become: yes
+  tasks:
+  - name: Install language-pack-en
+    apt:
+      name: language-pack-en
+      state: present
+      
+  - name: Generate locale
+    shell: |
+      sudo locale-gen en_IN.UTF-8
+      
+  - name: Set region format
+    shell: |
+      sudo localectl set-locale LC_TIME="en_IN.UTF-8"
+      sudo localectl set-locale LC_NUMERIC="en_IN.UTF-8"
+      sudo localectl set-locale LC_MONETARY="en_IN.UTF-8"
+      sudo localectl set-locale LC_PAPER="en_IN.UTF-8"
+      sudo localectl set-locale LC_MEASUREMENT="en_IN.UTF-8"
+      
+  - name: Set language format
+    shell: |
+      sudo localectl set-locale LANG=en_IN.UTF-8
+      
+  - name: Update System Locale
+    shell: |
+      sudo update-locale LANG=en_IN.UTF-8
+      sudo update-locale LC_TIME=en_IN.UTF-8
+
+- name: Set Regional Formats for Current User
+  hosts: localhost
+  become: false
+  tasks:
+  - name: Update System Preference
+    shell: |
+      cp ./files/pam_environment ~/.pam_environment
+
+- name: Make Ubuntu use local time
+  hosts: localhost
+  become: yes
+  tasks:
+  - name: Fix timezone issue with Windows
+    shell: |
+      timedatectl set-local-rtc 1 --adjust-system-clock
+

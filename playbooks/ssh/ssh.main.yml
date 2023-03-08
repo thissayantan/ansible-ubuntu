@@ -1,0 +1,202 @@
+---
+# - name: Setup Github CLI
+#   hosts: localhost
+#   become: yes
+#   become_user: root
+#   tasks:
+#     - name: Install curl if not already installed
+#       apt:
+#         name: curl
+#         state: present
+
+#     - name: Import Github CLI Keyring
+#       shell: curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg && sudo chmod go+r /usr/share/keyrings/githubcli-archive-keyring.gpg
+#       args:
+#         creates: /usr/share/keyrings/githubcli-archive-keyring.gpg
+
+#     - name: Add Github CLI Repository
+#       shell: |
+#         echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null
+
+#     - name: Install Github CLI
+#       apt:
+#         name: gh
+#         state: present
+
+#     - name: Test Github CLI
+#       shell: gh --version
+#       register: result
+#       ignore_errors: yes
+
+#     - name: Display Github CLI Version
+#       debug:
+#         var: result.stdout_lines
+
+# - name: Generate SSH Key and Add to Github
+#   hosts: localhost
+#   vars:
+#     git_username: "Sayantan"
+#     git_email: "this.sayantan@gmail.com"
+#   tasks:
+    # - name: Generate SSH Key
+    #   shell: ssh-keygen -t rsa -b 4096 -C {{ git_email }} -f ~/.ssh/id_rsa -N ""
+    #   register: result
+    #   ignore_errors: yes
+
+    # - name: Display SSH Key
+    #   debug:
+    #     var: result.stdout_lines
+
+    # - name: Login to Github
+    #   shell: echo "{{ GH_TOKEN }}" | gh auth login --with-token
+    #   register: login_result
+    #   changed_when: login_result.rc != 0
+
+    # - name: Get Hostname
+    #   shell: hostname
+    #   register: hostname_result
+
+    # - name: Add SSH Key to Github
+    #   shell: gh ssh-key add ~/.ssh/id_rsa.pub --title "$(hostname) - $(date +'%Y-%m-%d')"
+    #   register: result
+
+    # - name: Display Add SSH Key to Github Result
+    #   debug:
+    #     var: result.stdout_lines
+
+    # - name: Set Git username
+    #   become: yes
+    #   become_user: root
+    #   git_config:
+    #     name: user.name
+    #     value: "{{ git_username }}"
+
+    # - name: Set Git email
+    #   become: yes
+    #   become_user: root
+    #   git_config:
+    #     name: user.email
+    #     value: "{{ git_email }}"
+
+# - name: Clone Repos from Different Organizations
+#   hosts: localhost
+#   gather_facts: yes
+#   vars:
+#     repo_list_url: https://gist.githubusercontent.com/thissayantan/4d0b4dd26e1dc794a4d6fc857f71f9ff/raw/68a2f419a11eb58276b6ec6721d661e1de35f254/repo-list.yml
+#     work_directory_path: "~/everything/code/work"
+
+#   tasks:
+#     - name: Fetch repo list from Gist
+#       uri:
+#         url: "{{ repo_list_url }}"
+#         return_content: yes
+#       register: repo_list_content
+
+#     - name: Set repo list from Gist content
+#       set_fact:
+#         repo_list: "{{ repo_list_content.content | from_yaml }}"
+
+#     - name: Create work directory
+#       file:
+#         path: "{{ work_directory_path }}"
+#         state: directory
+
+#     - name: Clone Repo
+#       shell: |
+#         if [ ! -d {{ item.org_name }} ]; then
+#           mkdir {{ item.org_name }}
+#         fi
+#         cd {{ item.org_name }}
+#         git clone git@github.com:{{ item.org_name }}/{{ item.repo_name }}.git
+#       with_items: "{{ repo_list }}"
+#       args:
+#         chdir: "{{ work_directory_path }}"
+#       become: yes
+#       become_user: "{{ ansible_user_id }}"
+
+# - name: Add SSH key to servers
+#   hosts: localhost
+#   gather_facts: no
+#   vars:
+#     ssh_key_file: ~/.ssh/id_rsa.pub
+#     servers_gist_url: https://gist.githubusercontent.com/thissayantan/2f44bd54c80adad9732781a380af9b26/raw/da9c56f43288853b1e354c35478a171527f641c2/server_list.yml
+
+#   tasks:
+#     - name: Fetch server list from Gist
+#       uri:
+#         url: "{{ servers_gist_url }}"
+#         return_content: yes
+#       register: servers_content
+
+#     - name: Set server list from Gist content
+#       set_fact:
+#         servers_list: "{{ servers_content.content | from_yaml }}"
+
+#     - name: Add SSH key to servers
+#       authorized_key:
+#         user: "{{ item.username }}"
+#         key: "{{ lookup('file', ssh_key_file) }}"
+#       with_items: "{{ servers_list }}"
+#       become: yes
+#       become_user: "{{ item.username }}"
+#       vars:
+#         ansible_ssh_pass: "{{ item.password }}"
+
+- name: Download and place .pem and .key files
+  hosts: localhost
+  gather_facts: no
+  vars:
+    git_repo: "git@github.com:thissayantan/access-key.git"
+    git_repo_name: "access-key"
+    git_clone_dir: "/tmp"
+    git_version: "main"
+    keys_path: "keys"
+    dest_dir: "~/"
+    keys_mode: "0400"
+
+  tasks:
+    - name: Clone Git repository
+      git:
+        repo: "{{ git_repo }}"
+        version: "{{ git_version }}"
+        dest: "{{ git_clone_dir }}/{{ git_repo_name }}"
+      register: git_clone_result
+
+    - name: Move files to home directory
+      shell: |
+        cp {{ git_clone_dir }}/{{ git_repo_name }}/{{ keys_path }}/* -r {{ dest_dir }}
+        chmod {{ keys_mode }} ~/*.pem
+        chmod {{ keys_mode }} ~/*.key
+
+    - name: Remove temporary directory
+      file:
+        path: "{{ git_clone_dir }}/{{ git_repo_name }}"
+        state: absent
+      when: git_clone_result is defined and git_clone_result.changed
+
+- name: Add aliases to .zshrc
+  hosts: localhost
+  gather_facts: no
+  vars:
+    gist_url: "https://gist.githubusercontent.com/thissayantan/c9c9e6acbbfe2e409f578c41c5a4dc7e/raw/74ceedd5aa95ca1bb14fb0566973d384738e7c55/aliases.txt"
+    zshrc_file: "~/.zshrc"
+  
+  tasks:
+    - name: Fetch aliases from Gist
+      get_url:
+        url: "{{ gist_url }}"
+        dest: /tmp/aliases.txt
+      register: gist_result
+
+    - name: Add aliases to .zshrc
+      lineinfile:
+        path: "{{ zshrc_file }}"
+        insertbefore: "# custom end-of-file"
+        line: 
+          "{{ item }}"
+      with_lines: "cat /tmp/aliases.txt"
+
+    - name: Remove temporary file
+      file:
+        path: /tmp/aliases.txt
+        state: absent

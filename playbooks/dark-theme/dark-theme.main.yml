@@ -1,0 +1,10 @@
+---
+- name: Set Theme to Dark
+  hosts: localhost
+  become: false
+
+  tasks:
+    - name: Set theme to Adwaita-dark
+      shell: |
+        gsettings set org.gnome.desktop.interface gtk-theme Yaru-dark
+        gsettings set org.gnome.desktop.interface color-scheme prefer-dark

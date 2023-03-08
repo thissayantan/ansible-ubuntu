@@ -1,0 +1,170 @@
+---
+- name: Install Applications on Ubuntu
+  hosts: localhost
+  become: yes
+  tasks:
+    - name: Install Conky
+      apt:
+        name: conky
+        state: present
+
+    - name: Download and Install Discord
+      get_url:
+        url: https://discordapp.com/api/download?platform=linux&format=deb
+        dest: /tmp/discord.deb
+      register: discord_deb
+      tags: discord
+
+    - name: Install Discord .deb Package
+      apt:
+        deb: /tmp/discord.deb
+        state: present
+      when: discord_deb is changed
+      tags: discord
+
+    - name: Install Disk Usage Analyzer
+      apt:
+        name: baobab
+        state: present
+        
+    - name: Install docker dependencies
+      apt:
+        pkg:
+          - apt-transport-https
+          - ca-certificates
+          - curl
+          - gnupg
+          - gnupg-agent
+          - software-properties-common
+          - lsb-release
+        state: present
+        
+    - name: add docker's GPG key
+      apt_key:
+        url: https://download.docker.com/linux/ubuntu/gpg
+        state: present
+        
+    - name: add docker repository
+      shell: |
+        echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+        
+    - name: install docker
+      apt:
+        pkg:
+          - docker-ce 
+          - docker-ce-cli 
+          - containerd.io 
+          - docker-buildx-plugin 
+          - docker-compose-plugin
+        state: present
+        
+    - name: Run docker without sudo
+      shell: |
+        sudo groupadd docker
+        sudo usermod -aG docker $USER
+        
+    - name: Start docker on boot with ststemd
+      shell: |
+        sudo systemctl enable docker.service
+        sudo systemctl enable containerd.service
+
+    - name: Install Extension Manager
+      apt:
+        name: gnome-shell-extension-manager
+        state: present
+
+    - name: Download and Install GitKraken
+      get_url:
+        url: https://release.gitkraken.com/linux/gitkraken-amd64.deb
+        dest: /tmp/gitkraken.deb
+      register: gitkraken_deb
+      tags: gitkraken
+
+    - name: Install GitKraken .deb Package
+      apt:
+        deb: /tmp/gitkraken.deb
+        state: present
+      when: gitkraken_deb is changed
+      tags: gitkraken
+
+    - name: Download and Install Google Chrome Dev
+      get_url:
+        url: https://dl.google.com/linux/direct/google-chrome-beta_current_amd64.deb
+        dest: /tmp/google-chrome-dev.deb
+      register: chrome_deb
+      tags: chrome
+
+    - name: Install Google Chrome Dev .deb Package
+      apt:
+        deb: /tmp/google-chrome-dev.deb
+        state: present
+      when: chrome_deb is changed
+      tags: chrome
+
+    - name: Add Chrome to favorites
+      shell: |
+        gsettings set org.gnome.shell favorite-apps "['google-chrome-beta.desktop', $(gsettings get org.gnome.shell favorite-apps | sed 's/\[//g' | sed 's/\]//g' | sed "s/'google-chrome-beta.desktop', //g")]"
+
+    - name: Download NoSQLBooster
+      get_url:
+        url: https://s3.mongobooster.com/download/releasesv6/nosqlbooster4mongo-6.2.17.AppImage
+        dest: /usr/local/bin/nosqlbooster
+      register: nosqlbooster_deb
+      tags: nosqlbooster
+
+    - name: Make NoSQLBooster AppImage Executable
+      file:
+        path: /usr/local/bin/nosqlbooster
+        mode: 0755
+      when: nosqlbooster_deb is changed
+      tags: nosqlbooster
+
+    - name: Install NVM
+      shell: |
+        curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.36.0/install.sh | sh
+
+    - name: Add lines to .zshrc
+      blockinfile:
+        path: ~/.zshrc
+        block: |
+          export NVM_DIR="$HOME/.nvm"
+          [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
+          [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion
+
+    - name: Install Node.js 19
+      shell: nvm install 19
+      register: node_install_result
+        
+    - name: Install Postman from Flatpak
+      community.general.flatpak:
+        name:  https://dl.flathub.org/repo/appstream/com.getpostman.Postman.flatpakref
+        state: present
+      tags:
+        - postman
+        - flatpak
+
+    - name: Install Pyenv
+      shell: curl https://pyenv.run | sh
+      ignore_errors: true
+
+    - name: Install Slack from Flatpak
+      community.general.flatpak:
+        name:  https://dl.flathub.org/repo/appstream/com.slack.Slack.flatpakref
+        state: present
+      tags:
+        - slack
+        - flatpak
+
+    - name: Download VS Code Insider
+      get_url:
+        url: https://code.visualstudio.com/sha/download?build=insider&os=linux-deb-x64
+        dest: /tmp/vscode.deb
+      register: vscode_deb
+      tags: vscode
+
+    - name: Install VS Code Insider .deb Package
+      apt:
+        deb: /tmp/vscode.deb
+        state: present
+      when: vscode_deb is changed
+      tags: vscode
